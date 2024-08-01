@@ -1,33 +1,46 @@
 include("spin_optimization.jl")
 
-#* 파라미터 설정
-N = 10  # 스핀 격자의 크기
+# * Parameter for simulated_annealing
+N = 10
+  # System with N x N spins
 T_initial = 10.0
-T_final = 0.1
-cooling_rate = 0.99
+  # Initial temperature, kT units
+T_final = 0.01
+  # Final temperature, kT units
+cooling_rate = 0.98
+  # Next temperature = cooling_rate * current temperature
 steps_per_temp = 1000
+  # Number of Metropolis steps per temperature
 perturbation_rate = 0.1
+  # Intensity of random perturbation to spin state
 
-# Simulated Annealing 수행
+# Simulated Annealing is done here.
 final_spins, final_energy = simulated_annealing(N, T_initial, T_final, cooling_rate, perturbation_rate, steps_per_temp)
 
-# 최종 스핀 배열과 에너지 출력
-println("Final Spin Configuration:")
-println(final_spins)
+# * Energy and Spin Configuration
+println("Final Spin Configuration: \n", final_spins)
 println("Final Energy: ", final_energy)
 
-# Fourier transform 을 통해, M1, M2, M3 성분이 얼마나 많이 존재하는지 확인
+# * With a Fourier Transform, we can extract the power spectrum of the spin configuration.
 N = size(final_spins, 1)
-Snx = [final_spins[i, j][1] for i in 1:N, j in 1:N]
-Sny = [final_spins[i, j][2] for i in 1:N, j in 1:N]
-Snz = [final_spins[i, j][3] for i in 1:N, j in 1:N]
-Skx = fft(Snx)
-Sky = fft(Sny)
-Skz = fft(Snz)
 
-argmax(abs.(Skx)), argmax(abs.(Sky)), argmax(abs.(Skz))
+Snx = [final_spins[i, j][1] for i in 1:N, j in 1:N];  Skx = fft(Snx);
+Sny = [final_spins[i, j][2] for i in 1:N, j in 1:N];  Sky = fft(Sny);
+Snz = [final_spins[i, j][3] for i in 1:N, j in 1:N];  Skz = fft(Snz);
+Sk_Sk = real.(dot.(Skx, Skx) + dot.(Sky, Sky) + dot.(Skz, Skz))
 
-# GLMakie 패키지를 사용하여 스핀 배열을 시각화
+recipBasis = [[√3/2, 1/2], [ 0.0, 1.0]];
+x = [recipBasis[1][1]*i + recipBasis[2][1]*j for i in (-N+1):N, j in (-N+1):N];  x = x[:]
+y = [recipBasis[1][2]*i + recipBasis[2][2]*j for i in (-N+1):N, j in (-N+1):N];  y = y[:]
+z = Sk_Sk;  z = [z z; z z];                                                      z = z[:]
+
+fig  = Figure();
+axs = Axis(fig[1, 1], aspect = 1)
+tr = tricontourf!(axs, x, y, z, colormap = :viridis)
+xlims!(axs, -N*1/2, N*3/4);  ylims!(axs, -N*1/2, N*3/4);
+fig
+
+# * Visualize Spin configuration in a 3D plot with GLMakie
 
 include("plot_spins_custom.jl")
 
@@ -41,6 +54,6 @@ xlims!(ax1,-5,10);  ylims!(ax1,0,6√3);
 
 ax2 = Axis3(fig[1, 2]; aspect = (1,1,1), azimuth = π/4, elevation = π/12);
 ff2 = draw_unit_sphere(ax2);  gg2 = reduce_on_unit_sphere(ax2, final_spins; frame=0);
-# hidexdecorations!(ax2);  hideydecorations!(ax2);  hidezdecorations!(ax2);  hidespines!(ax2);
+hidexdecorations!(ax2);  hideydecorations!(ax2);  hidezdecorations!(ax2);  hidespines!(ax2);
 
 fig
