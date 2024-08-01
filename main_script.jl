@@ -1,21 +1,27 @@
-include("spin_optimization.jl")
+include("function_bundle.jl")
 
 # * Parameter for simulated_annealing
-N = 10
+N = 30
   # System with N x N spins
 T_initial = 10.0
   # Initial temperature, kT units
-T_final = 0.01
+T_final = 0.1
   # Final temperature, kT units
-cooling_rate = 0.98
+cooling_rate = 0.99
   # Next temperature = cooling_rate * current temperature
-steps_per_temp = 1000
+steps_per_temp = 5000
   # Number of Metropolis steps per temperature
 perturbation_rate = 0.1
   # Intensity of random perturbation to spin state
 
 # Simulated Annealing is done here.
-final_spins, final_energy = simulated_annealing(N, T_initial, T_final, cooling_rate, perturbation_rate, steps_per_temp)
+spins = initialize_spins(N);
+final_spins, final_energy = 
+  simulated_annealing(spins, T_initial, T_final, cooling_rate, perturbation_rate, steps_per_temp)
+# One more annealing at the final temperature
+final_spins, final_energy = 
+  simulated_annealing(final_spins, T_final, 0.01 * T_final, cooling_rate, perturbation_rate, steps_per_temp)
+
 
 # * Energy and Spin Configuration
 println("Final Spin Configuration: \n", final_spins)
@@ -36,7 +42,7 @@ z = Sk_Sk;  z = [z z; z z];                                                     
 
 fig  = Figure();
 axs = Axis(fig[1, 1], aspect = 1)
-tr = tricontourf!(axs, x, y, z, colormap = :viridis)
+tr = tricontourf!(axs, x, y, z, colormap = :turbo)
 xlims!(axs, -N*1/2, N*3/4);  ylims!(axs, -N*1/2, N*3/4);
 fig
 
